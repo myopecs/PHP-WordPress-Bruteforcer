@@ -14,7 +14,7 @@ echo "Author: Mr Hery\n";
 echo "Organization: Malaysia Open Cyber Security (MyOPECS)\n";
 echo "Date: 7 July 2023\n";
 echo "Desclaimer:\n";
-echo "This script is written to show the basic way to brute force a wordpress login authentication. Use of this script for illegal activities is not allowed. Using this script for illegal activities is up to your own risk.\n";
+echo "This script has been created to show the basic way to brute force a wordpress login authentication. Use of this script for illegal activities is not allowed. Using this script for illegal activities is up to your own risk.\n";
 echo "===================================================\n";
 
 function checkURL($url){
