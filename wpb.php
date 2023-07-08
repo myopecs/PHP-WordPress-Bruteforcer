@@ -119,21 +119,21 @@ function main(){
 		echo "\n";
 		
 		if($canEnum){
-			echo "[GOOD] This URL maybe can get list of users.\n";
+			echo "[GOOD] Maybe we can enumerate list of users.\n";
 		}else{
-			echo "[BAD] Seems This URL cannot get list of users.\n";
+			echo "[BAD] Seems we cannot enumerate list of users.\n";
 		}
 		
 		if($canBruteforce){
-			echo "[GOOD] This URL maybe can perform bruteforce attack.\n";
+			echo "[GOOD] Seems we can bruteforce this site.\n";
 		}else{
-			echo "[BAD] Seems This URL cannot  perform bruteforce attack.\n";
+			echo "[BAD] Seems we cannot bruteforce this site.\n";
 		}
 		
 		echo "\n";
 		
 		if(!$canEnum && !$canBruteforce){
-			echo "\n[BAD] Seems like nothing we can do here. Maybe the URL is not a WordPress Web Application.\n";
+			echo "\n[BAD] Emm. Seems like nothing we can do here. Maybe the URL is not a WordPress Web Application.\n";
 		}else{
 			$foundUsers = [];
 			
