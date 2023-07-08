@@ -1,0 +1,13 @@
+admin
+administrator
+root
+webadmin
+webmaster
+master
+user
+users
+useradmin
+adminuser
+rootuser
+userroot
+hery

