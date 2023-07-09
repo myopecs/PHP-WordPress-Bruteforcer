@@ -12,7 +12,7 @@ Run this command in your computer:
 php wpb.php
 ```
 
-If you are using XAMPP on Windows, you might need to add you PHP bin folder to system environment paths or you can use full path of PHP:
+If you are using XAMPP on Windows, you might need to add your PHP bin folder to system environment paths or you can use full path of PHP:
 ```
 c:/xampp/php/php wpb.php
 ```

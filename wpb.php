@@ -56,7 +56,7 @@ function getString($url){
 	
 	curl_close($curl);
 	
-	return $response;
+	return ["status" => $httpCode, "res" => $response];
 }
 
 function postString($url, $payload){
@@ -139,11 +139,11 @@ function main(){
 			
 			if($canEnum){
 				echo "[PROGRESS] Enumerating Users:\n";
-				// echo $url . "wp-json/wp/v2/users";
+				
 				$res = getString($url . "wp-json/wp/v2/users");
 				
-				if(!is_null($res)){
-					$obj = json_decode($res);
+				if(!is_null($res) && $res["status"] == "200"){
+					$obj = json_decode($res["res"]);
 					
 					if(count($obj) > 0){
 						foreach($obj as $o){
@@ -155,6 +155,10 @@ function main(){
 					}
 				}else{
 					echo "[FAIL] Fail enumerating users.\n";
+					
+					if($res["status"] != "200"){
+						echo "[FAIL] HTTP Response code: ". $res["status"] ." on " . $url . "wp-json/wp/v2/users.\n";
+					}
 				}
 			}
 			
